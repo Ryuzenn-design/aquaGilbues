@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaGilbués</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#f4f7f9;
+}
+
+header{
+background:#1565c0;
+color:white;
+padding:20px;
+text-align:center;
+}
+
+#map{
+height:55vh;
+}
+
+.container{
+padding:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+input, textarea{
+width:100%;
+padding:10px;
+margin-top:10px;
+margin-bottom:15px;
+border:1px solid #ccc;
+border-radius:8px;
+}
+
+button{
+background:#1565c0;
+color:white;
+padding:12px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+width:100%;
+font-size:16px;
+}
+
+button:hover{
+background:#0d47a1;
+}
+
+.ocorrencia{
+border-left:6px solid red;
+padding:10px;
+margin-top:10px;
+background:#fafafa;
+}
+
+.alta{
+border-color:red;
+}
+
+.media{
+border-color:orange;
+}
+
+.baixa{
+border-color:green;
+}
+
+img{
+max-width:100%;
+margin-top:10px;
+border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>AquaGilbués</h1>
+<p>Monitoramento Inteligente de Vazamentos</p>
+</header>
+
+<div id="map"></div>
+
+<div class="container">
+
+<div class="card">
+<h2>Reportar Vazamento</h2>
+
+<input type="text" id="rua" placeholder="Rua ou local">
+
+<textarea id="descricao" placeholder="Descreva o problema"></textarea>
+
+<input type="file" id="foto">
+
+<button onclick="registrarVazamento()">
+Enviar Ocorrência
+</button>
+</div>
+
+<div class="card">
+<h2>Painel da Prefeitura</h2>
+<div id="lista"></div>
+</div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+const map = L.map('map').setView([-9.83,-45.34],13);
+
+L.tileLayer(
+'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
+
+let marcadorTemp = null;
+let latitude = -9.83;
+let longitude = -45.34;
+
+map.on('click', function(e){
+
+latitude = e.latlng.lat;
+longitude = e.latlng.lng;
+
+if(marcadorTemp){
+map.removeLayer(marcadorTemp);
+}
+
+marcadorTemp = L.marker([latitude,longitude]).addTo(map);
+
+});
+
+function gerarPrioridade(descricao){
+
+descricao = descricao.toLowerCase();
+
+if(
+descricao.includes("estourado") ||
+descricao.includes("muito") ||
+descricao.includes("grande")
+){
+return "Alta";
+}
+
+if(
+descricao.includes("vazamento") ||
+descricao.includes("água")
+){
+return "Média";
+}
+
+return "Baixa";
+}
+
+function registrarVazamento(){
+
+const rua =
+document.getElementById("rua").value;
+
+const descricao =
+document.getElementById("descricao").value;
+
+const foto =
+document.getElementById("foto").files[0];
+
+if(!rua || !descricao){
+alert("Preencha os campos.");
+return;
+}
+
+const prioridade =
+gerarPrioridade(descricao);
+
+let corClasse = "baixa";
+
+if(prioridade==="Alta"){
+corClasse="alta";
+}
+
+if(prioridade==="Média"){
+corClasse="media";
+}
+
+L.marker([latitude,longitude])
+.addTo(map)
+.bindPopup(
+`
+<b>${rua}</b><br>
+Prioridade IA: ${prioridade}
+`
+);
+
+const reader = new FileReader();
+
+reader.onload = function(e){
+
+const html = `
+<div class="ocorrencia ${corClasse}">
+<h3>${rua}</h3>
+
+<p>
+<b>Descrição:</b>
+${descricao}
+</p>
+
+<p>
+<b>IA:</b>
+Prioridade ${prioridade}
+</p>
+
+<p>
+<b>Status:</b>
+Pendente
+</p>
+
+<img src="${e.target.result}">
+</div>
+`;
+
+document
+.getElementById("lista")
+.innerHTML += html;
+
+};
+
+if(foto){
+reader.readAsDataURL(foto);
+}else{
+
+const html = `
+<div class="ocorrencia ${corClasse}">
+<h3>${rua}</h3>
+
+<p>
+<b>Descrição:</b>
+${descricao}
+</p>
+
+<p>
+<b>IA:</b>
+Prioridade ${prioridade}
+</p>
+
+<p>
+<b>Status:</b>
+Pendente
+</p>
+</div>
+`;
+
+document
+.getElementById("lista")
+.innerHTML += html;
+
+}
+
+alert(
+"Ocorrência enviada para o sistema AquaGilbués!"
+);
+
+}
+
+</script>
+
+</body>
+</html>
